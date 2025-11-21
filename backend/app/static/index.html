@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFP AI</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Add Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Add highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card {
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.35em 0.65em;
+        }
+        .progress {
+            height: 1.5rem;
+        }
+        .progress-bar {
+            font-size: 0.9rem;
+            line-height: 1.5rem;
+        }
+        .markdown-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        
+        /* Chat styling */
+        .message {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .message:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .message-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .message.user .message-header {
+            color: #0d6efd;
+        }
+        .message.assistant .message-header {
+            color: #198754;
+        }
+        .message.system {
+            color: #6c757d;
+        }
+        .message.user .message-content {
+            background-color: #e9f5ff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .message.assistant .message-content {
+            background-color: #f0f9f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        /* Markdown styling */
+        .markdown-container h1, .markdown-container h2, .markdown-container h3,
+        .markdown-container h4, .markdown-container h5, .markdown-container h6 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .markdown-container p {
+            margin-bottom: 1rem;
+        }
+        .markdown-container pre {
+            background-color: #f1f1f1;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .markdown-container code {
+            font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.9em;
+        }
+        .markdown-container table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .markdown-container th, .markdown-container td {
+            border: 1px solid #dee2e6;
+            padding: 0.5rem;
+        }
+        .markdown-container blockquote {
+            border-left: 4px solid #dee2e6;
+            padding-left: 1rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">RFP AI</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">Project Management</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" for="projectSelect">Select Project</label>
+                            <select class="form-select" id="projectSelect">
+                                <option value="" selected>Choose a project...</option>
+                                <!-- Projects will be loaded here -->
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" id="refreshProjectsBtn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-success w-100 mb-2" id="newProjectBtn" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                            <i class="bi bi-plus-circle"></i> Create New Project
+                        </button>
+                        <button type="button" class="btn btn-danger w-100" id="resetDataBtn" disabled>
+                            <i class="bi bi-trash"></i> Delete Project
+                        </button>
+                    </div>
+                </div>
+                <div id="projectInfo" class="mt-3" style="display: none;">
+                    <div class="alert alert-info">
+                        <h5 id="projectNameDisplay">Project Name</h5>
+                        <p id="projectDescriptionDisplay" class="mb-0">Project description will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Upload PDF</div>
+            <div class="card-body">
+                <form id="uploadForm">
+                    <div class="mb-3">
+                        <label for="pdfFile" class="form-label">Select a PDF file to convert to markdown</label>
+                        <input type="file" class="form-control" id="pdfFile" accept=".pdf" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>Upload PDF</button>
+                    <small class="form-text text-muted">Please select a project before uploading.</small>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card" id="statusCard" style="display: none;">
+            <div class="card-header">
+                Processing Status
+                <span id="statusBadge" class="badge bg-secondary float-end status-badge">Initializing</span>
+            </div>
+            <div class="card-body">
+                <div id="statusMessage" class="mb-3">Initializing document processing...</div>
+                <div class="progress mb-3">
+                    <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%;" 
+                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="card" id="summarizeCard" style="display: none;">
+            <div class="card-header">
+                Document Summarization
+                <span id="summarizeBadge" class="badge bg-secondary float-end status-badge">Ready</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="documentSelect" class="form-label">Select document to summarize:</label>
+                    <select class="form-select mb-3" id="documentSelect">
+                        <option value="" selected>Choose a document...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Summarization Type:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="summaryType" id="summaryTypeExecutive" value="executive" checked>
+                        <label class="form-check-label" for="summaryTypeExecutive">
+                            <strong>Executive</strong> - Fast, high-level overview for decision-makers (recommended)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="summaryType" id="summaryTypeDetailed" value="detailed">
+                        <label class="form-check-label" for="summaryTypeDetailed">
+                            <strong>Detailed</strong> - Comprehensive hierarchical analysis (slower, more thorough)
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3" id="userQueryContainer" style="display: none;">
+                    <label for="userQueryInput" class="form-label">
+                        <i class="bi bi-chat-left-text"></i> Focus Instructions (Optional)
+                    </label>
+                    <textarea class="form-control" id="userQueryInput" rows="3"
+                              placeholder="Example: Focus on technical specifications and equipment requirements, or highlight legal concerns and compliance requirements..."></textarea>
+                    <small class="form-text text-muted">
+                        Provide natural language instructions to customize the detailed summary focus.
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <button type="button" class="btn btn-primary" id="summarizeBtn" disabled>
+                        <i class="bi bi-file-text"></i> Generate Summary
+                    </button>
+                    <small class="form-text text-muted d-block mt-2">
+                        Only processed documents without existing summaries are shown.
+                    </small>
+                </div>
+                <div id="summarizeProgress" style="display: none;">
+                    <div id="summarizeMessage" class="mb-3">Initializing summarization...</div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="summarizeProgressBar"
+                             role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+                <div id="summaryResult" class="markdown-container" style="display: none;">
+                    <h5>Document Summary</h5>
+                    <div id="summaryContent"></div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            <span id="summaryMetadata"></span>
+                        </small>
+                    </div>
+                </div>
+                <div id="summarizeError" class="alert alert-danger" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="card" id="chatCard" style="display: none;">
+            <div class="card-header">
+                Chat with Documents
+                <span class="badge bg-success float-end">Ready</span>
+            </div>
+            <div class="card-body">
+                <div id="chatMessages" class="mb-3" style="height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 10px;">
+                    <div class="message system">
+                        <div class="message-content markdown-container">
+                            <p>Document processing completed! You can now ask questions about the documents.</p>
+                            <p>Example questions you might ask:</p>
+                            <ul>
+                                <li>What are the main sections of this document?</li>
+                                <li>Summarize the key requirements</li>
+                                <li>What are the deadlines mentioned?</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Example of how markdown will render in messages -->
+                    <div class="message user">
+                        <div class="message-header">You</div>
+                        <div class="message-content">What are the main sections of this document?</div>
+                    </div>
+                    <div class="message assistant">
+                        <div class="message-header">AI Assistant</div>
+                        <div class="message-content markdown-container">
+                            <h4>Main Sections of the Document</h4>
+                            <ol>
+                                <li><strong>Introduction</strong> - Overview of the project</li>
+                                <li><strong>Requirements</strong> - Technical specifications</li>
+                                <li><strong>Timeline</strong> - Project milestones and deadlines</li>
+                                <li><strong>Budget</strong> - Financial considerations</li>
+                            </ol>
+                            <p>Would you like me to provide more details about any specific section?</p>
+                        </div>
+                    </div>
+                </div>
+                <form id="chatForm" class="d-flex">
+                    <input type="text" class="form-control me-2" id="chatInput" placeholder="Ask a question about the documents...">
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+                <div id="chatStatus" class="text-muted mt-2 d-none">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span id="chatStatusText">AI is thinking...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New Project Modal -->
+        <div class="modal fade" id="newProjectModal" tabindex="-1" aria-labelledby="newProjectModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newProjectModalLabel">Create New Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="newProjectForm">
+                            <div class="mb-3">
+                                <label for="projectNameInput" class="form-label">Project Name</label>
+                                <input type="text" class="form-control" id="projectNameInput" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="projectDescriptionInput" class="form-label">Description (optional)</label>
+                                <textarea class="form-control" id="projectDescriptionInput" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="createProjectBtn">Create Project</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // DOM elements
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('pdfFile');
+        const statusCard = document.getElementById('statusCard');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusMessage = document.getElementById('statusMessage');
+        const progressBar = document.getElementById('progressBar');
+        const errorMessage = document.getElementById('errorMessage');
+        const chatCard = document.getElementById('chatCard');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        
+        // Project elements
+        const projectSelect = document.getElementById('projectSelect');
+        const refreshProjectsBtn = document.getElementById('refreshProjectsBtn');
+        const newProjectBtn = document.getElementById('newProjectBtn');
+        const createProjectBtn = document.getElementById('createProjectBtn');
+        const projectInfo = document.getElementById('projectInfo');
+        const projectNameDisplay = document.getElementById('projectNameDisplay');
+        const projectDescriptionDisplay = document.getElementById('projectDescriptionDisplay');
+        const newProjectForm = document.getElementById('newProjectForm');
+        const projectNameInput = document.getElementById('projectNameInput');
+        const projectDescriptionInput = document.getElementById('projectDescriptionInput');
+        
+        // Summarization elements
+        const summarizeCard = document.getElementById('summarizeCard');
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        const documentSelect = document.getElementById('documentSelect');
+        const summarizeBadge = document.getElementById('summarizeBadge');
+        const summarizeProgress = document.getElementById('summarizeProgress');
+        const summarizeMessage = document.getElementById('summarizeMessage');
+        const summarizeProgressBar = document.getElementById('summarizeProgressBar');
+        const summaryResult = document.getElementById('summaryResult');
+        const summaryContent = document.getElementById('summaryContent');
+        const summaryMetadata = document.getElementById('summaryMetadata');
+        const summarizeError = document.getElementById('summarizeError');
+        
+        // Global variables
+        let documentId = null;
+        let selectedDocumentForSummary = null;
+        let statusPollingInterval = null;
+        let summarizePollingInterval = null;
+        let currentProjectId = null;
+        let conversationHistory = [];
+        let websocket = null;
+        let currentMessageDiv = null;
+        
+        // Event listeners
+        uploadForm.addEventListener('submit', handleUpload);
+        chatForm.addEventListener('submit', handleChatSubmit);
+        summarizeBtn.addEventListener('click', handleSummarize);
+        documentSelect.addEventListener('change', handleDocumentSelectChange);
+        // We'll keep the marked.js functionality for rendering markdown in chat messages
+        projectSelect.addEventListener('change', handleProjectChange);
+        refreshProjectsBtn.addEventListener('click', loadProjects);
+        createProjectBtn.addEventListener('click', createProject);
+        document.getElementById('resetDataBtn').addEventListener('click', handleResetData);
+        
+        // Add event listeners for summarization type radio buttons
+        document.querySelectorAll('input[name="summaryType"]').forEach(radio => {
+            radio.addEventListener('change', handleSummaryTypeChange);
+        });
+        
+        // Load projects when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+        });
+        
+        /**
+         * Load projects from the API
+         */
+        async function loadProjects() {
+            try {
+                logWithTime('Loading projects...');
+                const response = await fetch('/api/v1/projects');
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
+                }
+                
+                const projects = await response.json();
+                logWithTime(`Loaded ${projects.length} projects`);
+                
+                // Clear existing options except the default one
+                while (projectSelect.options.length > 1) {
+                    projectSelect.remove(1);
+                }
+                
+                // Add projects to select
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.project_id;
+                    option.textContent = project.name;
+                    option.dataset.description = project.description || 'No description provided.';
+                    projectSelect.appendChild(option);
+                });
+                
+                // If we had a selected project, try to reselect it
+                if (currentProjectId) {
+                    projectSelect.value = currentProjectId;
+                    // If the project no longer exists, reset currentProjectId
+                    if (projectSelect.value !== currentProjectId) {
+                        currentProjectId = null;
+                        uploadBtn.disabled = true;
+                    }
+                }
+                
+                // Update UI based on selection
+                handleProjectChange();
+                
+            } catch (error) {
+                logWithTime('Error loading projects:', error.message);
+                alert(`Failed to load projects: ${error.message}`);
+            }
+        }
+        
+        /**
+         * Handle project selection change
+         */
+        function handleProjectChange() {
+            const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+            currentProjectId = projectSelect.value;
+            const resetBtn = document.getElementById('resetDataBtn');
+            
+            if (currentProjectId) {
+                // Enable upload button
+                uploadBtn.disabled = false;
+                
+                // Enable delete project button
+                resetBtn.disabled = false;
+                
+                // Show project info
+                projectInfo.style.display = 'block';
+                projectNameDisplay.textContent = selectedOption.textContent;
+                projectDescriptionDisplay.textContent = selectedOption.dataset.description;
+                
+                // Check if this project has completed documents
+                checkProjectDocuments(currentProjectId);
+                
+                // Reset conversation history when changing projects
+                conversationHistory = [];
+                
+                // Reinitialize WebSocket connection for the new project
+                if (chatCard.style.display !== 'none') {
+                    initWebSocket();
+                }
+            } else {
+                // Disable upload button
+                uploadBtn.disabled = true;
+                
+                // Disable delete project button
+                resetBtn.disabled = true;
+                
+                // Hide project info
+                projectInfo.style.display = 'none';
+                
+                // Hide chat card
+                chatCard.style.display = 'none';
+                
+                // Close WebSocket connection if open
+                if (websocket && websocket.readyState !== WebSocket.CLOSED) {
+                    websocket.close();
+                    websocket = null;
+                }
+            }
+        }
+        
+        /**
+         * Check if a project has any completed documents
+         */
+        async function checkProjectDocuments(projectId) {
+            try {
+                logWithTime(`Checking documents for project: ${projectId}`);
+                
+                // First, let's check if the project directory has any status files
+                const response = await fetch(`/api/v1/projects/${projectId}/documents/status`);
+                
+                if (!response.ok) {
+                    // If endpoint doesn't exist yet, we'll try a different approach
+                    logWithTime(`Project documents status endpoint not available: ${response.status}`);
+                    return;
+                }
+                
+                const documents = await response.json();
+                logWithTime(`Found ${documents.length} documents in project`);
+                
+                // Check if any documents are completed
+                const completedDocuments = documents.filter(doc => doc.status === 'completed');
+                
+                if (completedDocuments.length > 0) {
+                    logWithTime(`Project has ${completedDocuments.length} completed documents`);
+                    
+                    // Clear example messages before showing chat interface
+                    chatMessages.innerHTML = `
+                        <div class="message system">
+                            <div class="message-content markdown-container">
+                                <p>Document processing completed! You can now ask questions about the documents.</p>
+                                <p>Example questions you might ask:</p>
+                                <ul>
+                                    <li>¿Cuál es el objeto de la licitación?</li>
+                                    <li>¿Se permite subcontratar parte del trabajo?</li>
+                                    <li>¿Cuáles son los plazos mencionados?</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    
+                    showChatInterface();
+                } else {
+                    logWithTime('No completed documents found in project');
+                    chatCard.style.display = 'none';
+                }
+            } catch (error) {
+                // If the endpoint doesn't exist, let's try a simpler approach
+                // This is a temporary solution until the backend endpoint is implemented
+                logWithTime('Trying alternative approach to check for completed documents');
+                try {
+                    // Try to get a list of documents in the project
+                    const listResponse = await fetch(`/api/v1/projects/${projectId}/documents`);
+                    
+                    if (listResponse.ok) {
+                        const documents = await listResponse.json();
+                        
+                        // For each document, check its status
+                        for (const doc of documents) {
+                            const statusResponse = await fetch(`/api/v1/projects/${projectId}/documents/${doc.document_id}/status`);
+                            if (statusResponse.ok) {
+                                const statusData = await statusResponse.json();
+                                if (statusData.status === 'completed') {
+                                    logWithTime(`Found completed document: ${doc.document_id}`);
+                                    showChatInterface();
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } catch (innerError) {
+                    logWithTime('Error in alternative document check:', innerError.message);
+                }
+                
+                logWithTime('Error checking project documents:', error.message);
+                // Don't show error to user, just log it
+                console.error(error);
+            }
+        }
+        
+        /**
+         * Create a new project
+         */
+        async function createProject() {
+            try {
+                const name = projectNameInput.value.trim();
+                const description = projectDescriptionInput.value.trim();
+                
+                if (!name) {
+                    alert('Project name is required');
+                    return;
+                }
+                
+                logWithTime('Creating new project:', name);
+                
+                // Disable button and show loading state
+                createProjectBtn.disabled = true;
+                createProjectBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+                
+                const response = await fetch('/api/v1/projects', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        description: description || undefined
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to create project: ${response.status} ${response.statusText}`);
+                }
+                
+                const project = await response.json();
+                logWithTime('Project created:', project);
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newProjectModal'));
+                modal.hide();
+                
+                // Reset form
+                projectNameInput.value = '';
+                projectDescriptionInput.value = '';
+                
+                // Reload projects and select the new one
+                await loadProjects();
+                projectSelect.value = project.project_id;
+                handleProjectChange();
+                
+                // Show success message
+                alert(`Project "${project.name}" created successfully!`);
+                
+            } catch (error) {
+                logWithTime('Error creating project:', error.message);
+                alert(`Failed to create project: ${error.message}`);
+            } finally {
+                // Re-enable button
+                createProjectBtn.disabled = false;
+                createProjectBtn.textContent = 'Create Project';
+            }
+        }
+        
+        /**
+         * Handle delete project button click
+         */
+        async function handleResetData() {
+            // Check if a project is selected
+            if (!currentProjectId) {
+                alert('⚠️ Please select a project first.');
+                return;
+            }
+            
+            // Get project name for confirmation
+            const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+            const projectName = selectedOption ? selectedOption.textContent : currentProjectId;
+            
+            // Show confirmation dialog
+            const confirmed = confirm(
+                `⚠️ WARNING: This will permanently delete the project "${projectName}"!\n\n` +
+                'This includes:\n' +
+                '- All uploaded documents\n' +
+                '- All embeddings in the vector database\n' +
+                '- All project data\n\n' +
+                'This action cannot be undone. Are you sure you want to continue?'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                logWithTime(`Deleting project: ${currentProjectId}`);
+                
+                const resetBtn = document.getElementById('resetDataBtn');
+                
+                // Disable button and show loading state
+                resetBtn.disabled = true;
+                resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+                
+                const response = await fetch(`/api/v1/projects/${currentProjectId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Delete failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                logWithTime('Project deleted:', result);
+                
+                // Show success message
+                alert(
+                    `✅ Project deleted successfully!\n\n` +
+                    `${result.message}`
+                );
+                
+                // Reset UI
+                resetUI();
+                
+                // Clear project selection
+                currentProjectId = null;
+                projectSelect.value = '';
+                projectInfo.style.display = 'none';
+                uploadBtn.disabled = true;
+                
+                // Reload projects
+                await loadProjects();
+                
+            } catch (error) {
+                logWithTime('Error deleting project:', error.message);
+                alert(`❌ Failed to delete project: ${error.message}`);
+            } finally {
+                // Re-enable button if a project is still selected
+                const resetBtn = document.getElementById('resetDataBtn');
+                if (currentProjectId) {
+                    resetBtn.disabled = false;
+                    resetBtn.innerHTML = '<i class="bi bi-trash"></i> Delete Project';
+                } else {
+                    resetBtn.disabled = true;
+                    resetBtn.innerHTML = '<i class="bi bi-trash"></i> Delete Project';
+                }
+            }
+        }
+        
+        /**
+         * Custom logging function with timestamp
+         */
+        function logWithTime(message, ...args) {
+            const now = new Date();
+            const timestamp = now.toISOString();
+            console.log(`[${timestamp}] ${message}`, ...args);
+        }
+        
+        /**
+         * Handle form submission and file upload
+         */
+        async function handleUpload(e) {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a PDF file');
+                return;
+            }
+            
+            // Disable upload button and show loading state
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+            
+            // Reset UI
+            resetUI();
+            
+            try {
+                logWithTime('Starting file upload process...');
+                // Upload file
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Show status card with uploading status
+                statusCard.style.display = 'block';
+                updateStatus({
+                    status: 'uploading',
+                    progress: 0,
+                    document_id: 'pending'
+                });
+                
+                const startTime = new Date();
+                if (!currentProjectId) {
+                    throw new Error('Please select a project before uploading');
+                }
+                
+                logWithTime(`Sending POST request to /api/v1/projects/${currentProjectId}/documents/upload...`);
+                const response = await fetch(`/api/v1/projects/${currentProjectId}/documents/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const endTime = new Date();
+                const duration = (endTime - startTime) / 1000; // in seconds
+                logWithTime(`POST response received after ${duration}s:`, response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+                }
+                
+                logWithTime('Parsing response JSON...');
+                const data = await response.json();
+                logWithTime('Response data:', data);
+                
+                // Store document ID
+                documentId = data.document_id;
+                
+                // Update status to uploaded
+                updateStatus({
+                    status: 'uploaded',
+                    progress: 10,
+                    document_id: documentId
+                });
+                
+                // Start polling for status updates
+                startStatusPolling(documentId);
+                
+            } catch (error) {
+                logWithTime('Error occurred:', error.message);
+                console.error(error);
+                showError(error.message);
+            } finally {
+                // Re-enable upload button
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = 'Upload PDF';
+                logWithTime('Upload process completed');
+            }
+        }
+        
+        /**
+         * Start polling for status updates every 2 seconds
+         */
+        function startStatusPolling(docId) {
+            // Clear any existing polling interval
+            if (statusPollingInterval) {
+                logWithTime('Clearing existing polling interval');
+                clearInterval(statusPollingInterval);
+            }
+            
+            logWithTime(`Starting status polling for document: ${docId}`);
+            
+            // Immediately fetch the initial status
+            fetchDocumentStatus(docId);
+            
+            // Set up polling interval (every 2 seconds)
+            statusPollingInterval = setInterval(() => {
+                fetchDocumentStatus(docId);
+            }, 2000);
+        }
+        
+        /**
+         * Fetch document status from the API
+         */
+        async function fetchDocumentStatus(docId) {
+            try {
+                logWithTime(`Fetching status for document: ${docId} in project: ${currentProjectId}`);
+                const response = await fetch(`/api/v1/projects/${currentProjectId}/documents/${docId}/status`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch status: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                logWithTime('Status received:', data);
+                
+                // Update UI with status
+                updateStatus(data);
+                
+                // If processing is complete, show the chat interface and stop polling
+                if (data.status === 'completed') {
+                    logWithTime('Processing completed, showing chat interface');
+                    showChatInterface();
+                    stopStatusPolling();
+                } else if (data.status === 'failed') {
+                    logWithTime('Processing failed, stopping polling');
+                    stopStatusPolling();
+                }
+                
+            } catch (error) {
+                logWithTime('Error fetching status:', error.message);
+                showError(`Failed to fetch status: ${error.message}`);
+            }
+        }
+        
+        /**
+         * Stop the status polling interval
+         */
+        function stopStatusPolling() {
+            if (statusPollingInterval) {
+                logWithTime('Stopping status polling');
+                clearInterval(statusPollingInterval);
+                statusPollingInterval = null;
+            }
+        }
+        
+        /**
+         * Update the UI with status information
+         */
+        function updateStatus(data) {
+            logWithTime('Updating status:', data);
+            
+            // Update status badge
+            statusBadge.textContent = capitalizeFirstLetter(data.status);
+            
+            // Update badge color based on status
+            statusBadge.className = 'badge status-badge float-end ';
+            switch (data.status) {
+                case 'uploading': statusBadge.className += 'bg-warning'; break;
+                case 'uploaded': statusBadge.className += 'bg-secondary'; break;
+                case 'converting': statusBadge.className += 'bg-primary'; break;
+                case 'chunking': statusBadge.className += 'bg-info'; break;
+                case 'embedding': statusBadge.className += 'bg-info'; break;
+                case 'storing': statusBadge.className += 'bg-info'; break;
+                case 'completed': statusBadge.className += 'bg-success'; break;
+                case 'failed': statusBadge.className += 'bg-danger'; break;
+                default: statusBadge.className += 'bg-secondary';
+            }
+            
+            // Update status message
+            let statusText = '';
+            switch (data.status) {
+                case 'uploading': statusText = 'Uploading document...'; break;
+                case 'uploaded': statusText = 'Document uploaded, waiting for processing...'; break;
+                case 'converting': statusText = 'Converting PDF to markdown...'; break;
+                case 'chunking': statusText = 'Chunking document content...'; break;
+                case 'embedding': statusText = 'Generating embeddings...'; break;
+                case 'storing': statusText = 'Storing in vector database...'; break;
+                case 'completed': statusText = 'Processing completed successfully!'; break;
+                case 'failed': statusText = 'Processing failed'; break;
+                default: statusText = 'Processing document...';
+            }
+            statusMessage.textContent = statusText;
+            
+            // Update progress bar
+            const progress = data.progress || 0;
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress}%`;
+            progressBar.setAttribute('aria-valuenow', progress);
+            
+            // Show error if any
+            if (data.error) {
+                showError(data.error);
+            }
+        }
+        
+        /**
+         * Show the chat interface when processing is complete
+         */
+        function showChatInterface() {
+            logWithTime('Showing chat interface');
+            chatCard.style.display = 'block';
+            
+            // Enable chat input and button
+            chatInput.disabled = false;
+            chatForm.querySelector('button').disabled = false;
+            
+            // Show summarize card and load available documents
+            summarizeCard.style.display = 'block';
+            loadAvailableDocuments();
+            
+            // Initialize WebSocket connection
+            initWebSocket();
+            
+            // Apply syntax highlighting to any code blocks in the example messages if hljs is available
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Scroll to the bottom of the chat messages
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        /**
+         * Load available documents for summarization
+         */
+        async function loadAvailableDocuments() {
+            if (!currentProjectId) return;
+            
+            try {
+                logWithTime('Loading available documents for summarization...');
+                
+                // Get all documents in the project with their status
+                const response = await fetch(`/api/v1/projects/${currentProjectId}/documents/status`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load documents: ${response.status}`);
+                }
+                
+                const documents = await response.json();
+                logWithTime(`Found ${documents.length} documents in project`);
+                
+                // Clear existing options except the default one
+                while (documentSelect.options.length > 1) {
+                    documentSelect.remove(1);
+                }
+                
+                // Add all completed documents (users can generate multiple summary types)
+                let availableCount = 0;
+                for (const doc of documents) {
+                    if (doc.status === 'completed') {
+                        const option = document.createElement('option');
+                        option.value = doc.document_id;
+                        option.textContent = doc.filename || doc.document_id;
+                        documentSelect.appendChild(option);
+                        availableCount++;
+                    }
+                }
+                
+                logWithTime(`${availableCount} documents available for summarization`);
+                
+                // If current document is in the list, select it
+                if (documentId) {
+                    documentSelect.value = documentId;
+                    handleDocumentSelectChange();
+                }
+                
+            } catch (error) {
+                logWithTime('Error loading available documents:', error.message);
+            }
+        }
+        
+        /**
+         * Handle document selection change
+         */
+        function handleDocumentSelectChange() {
+            selectedDocumentForSummary = documentSelect.value;
+            
+            if (selectedDocumentForSummary) {
+                summarizeBtn.disabled = false;
+                logWithTime(`Selected document for summarization: ${selectedDocumentForSummary}`);
+            } else {
+                summarizeBtn.disabled = true;
+            }
+        }
+        
+        /**
+         * Handle summarize button click
+         */
+        async function handleSummarize() {
+            if (!currentProjectId || !selectedDocumentForSummary) {
+                alert('Please select a document to summarize');
+                return;
+            }
+            
+            // Get selected summarization type
+            const summaryType = document.querySelector('input[name="summaryType"]:checked').value;
+            
+            // Get user query if detailed type is selected
+            const userQuery = summaryType === 'detailed' ? document.getElementById('userQueryInput').value.trim() : null;
+            
+            try {
+                logWithTime(`Starting ${summaryType} summarization for: ${selectedDocumentForSummary}`);
+                if (userQuery) {
+                    logWithTime(`User query: ${userQuery.substring(0, 100)}...`);
+                }
+                
+                // Disable button and show loading state
+                summarizeBtn.disabled = true;
+                documentSelect.disabled = true;
+                // Disable radio buttons and user query input during summarization
+                document.querySelectorAll('input[name="summaryType"]').forEach(radio => radio.disabled = true);
+                document.getElementById('userQueryInput').disabled = true;
+                summarizeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Summarizing...';
+                
+                // Hide previous results/errors
+                summaryResult.style.display = 'none';
+                summarizeError.style.display = 'none';
+                
+                // Show progress
+                summarizeProgress.style.display = 'block';
+                updateSummarizeStatus('initializing', 0);
+                
+                // Prepare request body
+                const requestBody = {
+                    summarization_type: summaryType
+                };
+                
+                // Add user_query only if it's not empty and type is detailed
+                if (userQuery && summaryType === 'detailed') {
+                    requestBody.user_query = userQuery;
+                }
+                
+                // Start summarization with selected type and optional user query
+                const response = await fetch(`/api/v1/projects/${currentProjectId}/documents/${selectedDocumentForSummary}/summarize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `Summarization failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                logWithTime('Summarization started:', data);
+                
+                // Start polling for summarization status
+                startSummarizePolling();
+                
+            } catch (error) {
+                logWithTime('Error starting summarization:', error.message);
+                showSummarizeError(error.message);
+                summarizeBtn.disabled = false;
+                documentSelect.disabled = false;
+                // Re-enable radio buttons and user query input
+                document.querySelectorAll('input[name="summaryType"]').forEach(radio => radio.disabled = false);
+                document.getElementById('userQueryInput').disabled = false;
+                summarizeBtn.innerHTML = '<i class="bi bi-file-text"></i> Generate Summary';
+            }
+        }
+        
+        /**
+         * Start polling for summarization status
+         */
+        let failedStatusRetryCount = 0;
+        const MAX_FAILED_RETRIES = 3;
+        const FAILED_RETRY_DELAY = 3000; // 3 seconds
+        
+        function startSummarizePolling() {
+            if (summarizePollingInterval) {
+                clearInterval(summarizePollingInterval);
+            }
+            
+            // Reset retry counter when starting new polling
+            failedStatusRetryCount = 0;
+            
+            logWithTime('Starting summarization status polling');
+            fetchSummarizationStatus();
+            summarizePollingInterval = setInterval(() => {
+                fetchSummarizationStatus();
+            }, 2000);
+        }
+        
+        /**
+         * Fetch summarization status
+         */
+        async function fetchSummarizationStatus() {
+            if (!selectedDocumentForSummary) return;
+            
+            try {
+                const statusResponse = await fetch(`/api/v1/projects/${currentProjectId}/documents/${selectedDocumentForSummary}/status`);
+                
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    const summaryStatus = statusData.summary_status || 'not_started';
+                    const summaryProgress = statusData.summary_progress || 0;
+                    
+                    logWithTime('Summary status:', summaryStatus, 'Progress:', summaryProgress);
+                    
+                    if (summaryStatus === 'completed' || statusData.status === 'summary_completed') {
+                        const summaryResponse = await fetch(`/api/v1/projects/${currentProjectId}/documents/${selectedDocumentForSummary}/summary`);
+                        
+                        if (summaryResponse.ok) {
+                            const summaryData = await summaryResponse.json();
+                            displaySummary(summaryData);
+                            stopSummarizePolling();
+                            // Remove summarized document from dropdown
+                            loadAvailableDocuments();
+                        }
+                    } else if (summaryStatus === 'failed' || statusData.status === 'summary_failed') {
+                        // Retry logic: wait and check again before showing error
+                        if (failedStatusRetryCount < MAX_FAILED_RETRIES) {
+                            failedStatusRetryCount++;
+                            logWithTime(`Failed status detected, retry ${failedStatusRetryCount}/${MAX_FAILED_RETRIES} in ${FAILED_RETRY_DELAY/1000}s...`);
+                            
+                            // Wait before retrying
+                            await new Promise(resolve => setTimeout(resolve, FAILED_RETRY_DELAY));
+                            
+                            // Check status again
+                            const retryResponse = await fetch(`/api/v1/projects/${currentProjectId}/documents/${selectedDocumentForSummary}/status`);
+                            if (retryResponse.ok) {
+                                const retryData = await retryResponse.json();
+                                const retryStatus = retryData.summary_status || 'not_started';
+                                
+                                logWithTime(`Retry check: status is now '${retryStatus}'`);
+                                
+                                // If status changed from failed, continue polling
+                                if (retryStatus !== 'failed' && retryData.status !== 'summary_failed') {
+                                    logWithTime('Status recovered, continuing polling');
+                                    failedStatusRetryCount = 0; // Reset counter
+                                    return; // Continue polling
+                                }
+                            }
+                            
+                            // Still failed after retry, try again on next poll
+                            return;
+                        }
+                        
+                        // Max retries reached, show error
+                        logWithTime('Max retries reached, showing error');
+                        const error = statusData.summary_error || statusData.error || 'Summarization failed';
+                        showSummarizeError(error);
+                        stopSummarizePolling();
+                        failedStatusRetryCount = 0; // Reset for next time
+                    } else if (summaryStatus !== 'not_started') {
+                        // Reset retry counter on any non-failed status
+                        failedStatusRetryCount = 0;
+                        updateSummarizeStatus(summaryStatus, summaryProgress);
+                    }
+                }
+            } catch (error) {
+                logWithTime('Error fetching summarization status:', error.message);
+            }
+        }
+        
+        /**
+         * Stop summarization polling
+         */
+        function stopSummarizePolling() {
+            if (summarizePollingInterval) {
+                logWithTime('Stopping summarization polling');
+                clearInterval(summarizePollingInterval);
+                summarizePollingInterval = null;
+            }
+            documentSelect.disabled = false;
+            summarizeBtn.disabled = !selectedDocumentForSummary;
+            // Re-enable radio buttons and user query input
+            document.querySelectorAll('input[name="summaryType"]').forEach(radio => radio.disabled = false);
+            document.getElementById('userQueryInput').disabled = false;
+            summarizeBtn.innerHTML = '<i class="bi bi-file-text"></i> Generate Summary';
+        }
+        
+        /**
+         * Update summarization status UI
+         */
+        function updateSummarizeStatus(status, progress) {
+            summarizeBadge.textContent = capitalizeFirstLetter(status);
+            summarizeBadge.className = 'badge status-badge float-end ';
+            
+            if (status === 'completed') {
+                summarizeBadge.className += 'bg-success';
+            } else if (status === 'failed') {
+                summarizeBadge.className += 'bg-danger';
+            } else {
+                summarizeBadge.className += 'bg-primary';
+            }
+            
+            let message = 'Generating summary...';
+            if (status.includes('processing')) {
+                message = 'Processing document chunks...';
+            } else if (status === 'initializing') {
+                message = 'Initializing summarization workflow...';
+            } else if (status === 'saving') {
+                message = 'Saving summary...';
+            }
+            summarizeMessage.textContent = message;
+            
+            summarizeProgressBar.style.width = `${progress}%`;
+            summarizeProgressBar.textContent = `${progress}%`;
+            summarizeProgressBar.setAttribute('aria-valuenow', progress);
+        }
+        
+        /**
+         * Display the summary result
+         */
+        function displaySummary(data) {
+            logWithTime('Displaying summary:', data);
+            summarizeProgress.style.display = 'none';
+            summaryResult.style.display = 'block';
+            
+            const summaries = data.summaries || [];
+            
+            if (summaries.length === 0) {
+                summaryContent.innerHTML = '<p class="text-muted">No summaries available</p>';
+                summaryMetadata.textContent = '';
+                return;
+            }
+            
+            // Display all available summaries
+            let htmlContent = '';
+            summaries.forEach((summary, index) => {
+                const typeLabel = summary.type === 'executive' ? 'Executive Summary' : 'Detailed Summary';
+                const badgeClass = summary.type === 'executive' ? 'bg-primary' : 'bg-info';
+                
+                htmlContent += `
+                    <div class="mb-4 ${index > 0 ? 'mt-4 pt-4 border-top' : ''}">
+                        <h5>
+                            <span class="badge ${badgeClass}">${typeLabel}</span>
+                            <small class="text-muted ms-2">${summary.timestamp || 'Unknown'}</small>
+                        </h5>
+                `;
+                
+                if (typeof marked !== 'undefined') {
+                    htmlContent += marked.parse(summary.summary || 'No summary available');
+                } else {
+                    htmlContent += `<p>${summary.summary || 'No summary available'}</p>`;
+                }
+                
+                // Add metadata for detailed summaries
+                if (summary.type === 'detailed') {
+                    htmlContent += `
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Chunks: ${summary.num_chunks || 'N/A'} |
+                                Collapse Level: ${summary.collapse_level || 'none'}
+                    `;
+                    
+                    // Show user query if it was provided
+                    if (summary.user_query) {
+                        htmlContent += ` | Focus: "${summary.user_query.substring(0, 50)}${summary.user_query.length > 50 ? '...' : ''}"`;
+                    }
+                    
+                    htmlContent += `
+                            </small>
+                        </div>
+                    `;
+                }
+                
+                htmlContent += '</div>';
+            });
+            
+            summaryContent.innerHTML = htmlContent;
+            summaryMetadata.textContent = `${summaries.length} summary type(s) available`;
+            
+            summarizeBadge.textContent = 'Completed';
+            summarizeBadge.className = 'badge bg-success float-end status-badge';
+            
+            if (typeof hljs !== 'undefined') {
+                summaryContent.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+        }
+        
+        /**
+         * Show summarization error
+         */
+        function showSummarizeError(message) {
+            summarizeProgress.style.display = 'none';
+            summarizeError.style.display = 'block';
+            summarizeError.textContent = message;
+            summarizeBadge.textContent = 'Failed';
+            summarizeBadge.className = 'badge bg-danger float-end status-badge';
+        }
+        
+        /**
+         * Initialize WebSocket connection
+         */
+        function initWebSocket() {
+            // Close existing connection if any
+            if (websocket && websocket.readyState !== WebSocket.CLOSED) {
+                websocket.close();
+            }
+            
+            // Create new WebSocket connection
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${currentProjectId}`;
+            
+            logWithTime(`Initializing WebSocket connection to ${wsUrl}`);
+            websocket = new WebSocket(wsUrl);
+            
+            // WebSocket event handlers
+            websocket.onopen = (event) => {
+                logWithTime('WebSocket connection established');
+                // Enable chat input when connection is established
+                chatInput.disabled = false;
+                chatForm.querySelector('button').disabled = false;
+            };
+            
+            websocket.onclose = (event) => {
+                logWithTime('WebSocket connection closed');
+                // Disable chat input when connection is lost
+                chatInput.disabled = true;
+                chatForm.querySelector('button').disabled = true;
+                
+                // Show reconnecting message
+                addChatMessage('System', 'Connection lost. Reconnecting...', false);
+                
+                // Try to reconnect after a delay if the connection was closed unexpectedly
+                if (chatCard.style.display !== 'none') {
+                    setTimeout(initWebSocket, 3000);
+                }
+            };
+            
+            websocket.onerror = (error) => {
+                logWithTime('WebSocket error:', error);
+                addChatMessage('System', 'Error: WebSocket connection failed. Attempting to reconnect...', false);
+                
+                // Disable chat input when connection has an error
+                chatInput.disabled = true;
+                chatForm.querySelector('button').disabled = true;
+            };
+            
+            websocket.onmessage = handleWebSocketMessage;
+        }
+        
+        /**
+         * Handle WebSocket messages
+         */
+        function handleWebSocketMessage(event) {
+            try {
+                const data = JSON.parse(event.data);
+                logWithTime('WebSocket message received:', data);
+                
+                // Ensure the chat status is visible for all message types
+                const chatStatus = document.getElementById('chatStatus');
+                
+                // Hide loading indicator if this is an error message
+                if (data.error) {
+                    chatStatus.classList.add('d-none');
+                    addChatMessage('System', `
+                        <div class="alert alert-danger">
+                            <strong><i class="bi bi-exclamation-triangle"></i> Error</strong>
+                            <div>${data.error}</div>
+                        </div>
+                    `, true);
+                    return;
+                }
+                
+                // Make sure the status is visible for all other message types
+                chatStatus.classList.remove('d-none');
+                
+                // Handle streaming chunks
+                if (data.metadata && data.metadata.type) {
+                    const { type } = data.metadata;
+                    
+                    // Handle different message types
+                    switch (type) {
+                        case 'tool_call':
+                            // Tool is being called
+                            const toolName = data.metadata.tool_name || 'unknown';
+                            const toolArgs = data.metadata.tool_args || '';
+                            
+                            // Make sure the status is visible
+                            document.getElementById('chatStatus').classList.remove('d-none');
+                            
+                            // Update status text with the actual message from the agent
+                            document.getElementById('chatStatusText').textContent = data.chunk;
+                            break;
+                            
+                        case 'tool_result':
+                            // Tool execution completed
+                            const toolResultName = data.metadata.tool_name || 'unknown';
+                            
+                            // Make sure the status is visible
+                            document.getElementById('chatStatus').classList.remove('d-none');
+                            
+                            // Update status text with the actual message from the agent
+                            document.getElementById('chatStatusText').textContent = data.chunk;
+                            break;
+                            
+                        case 'content':
+                            // Content chunk from the AI
+                            if (!currentMessageDiv) {
+                                // Clear any previous response with the same ID to avoid duplicates
+                                const existingResponse = document.getElementById('current-response');
+                                if (existingResponse) {
+                                    // Generate a unique ID for the previous response
+                                    const uniqueId = 'response-' + Date.now();
+                                    existingResponse.id = uniqueId;
+                                }
+                                
+                                // Create a new message div for the first chunk
+                                currentMessageDiv = document.createElement('div');
+                                currentMessageDiv.className = 'message assistant';
+                                
+                                const headerDiv = document.createElement('div');
+                                headerDiv.className = 'message-header';
+                                headerDiv.textContent = 'Assistant';
+                                
+                                const contentDiv = document.createElement('div');
+                                contentDiv.className = 'message-content markdown-container';
+                                contentDiv.id = 'current-response';
+                                
+                                // Initialize the raw content data attribute
+                                contentDiv.setAttribute('data-raw-content', '');
+                                
+                                currentMessageDiv.appendChild(headerDiv);
+                                currentMessageDiv.appendChild(contentDiv);
+                                chatMessages.appendChild(currentMessageDiv);
+                                
+                                // Update status text to show we're generating content
+                                document.getElementById('chatStatusText').textContent = 'Generando respuesta...';
+                            }
+                            
+                            // Get the current response div
+                            const contentDiv = document.getElementById('current-response');
+                            if (!contentDiv) {
+                                console.error('Could not find current-response element');
+                                return;
+                            }
+                            
+                            // Update the raw content by appending the new chunk
+                            const rawContent = contentDiv.getAttribute('data-raw-content') + data.chunk;
+                            contentDiv.setAttribute('data-raw-content', rawContent);
+                            
+                            // Render the complete markdown content
+                            contentDiv.innerHTML = marked.parse(rawContent);
+                            
+                            // Apply syntax highlighting to code blocks if hljs is available
+                            if (typeof hljs !== 'undefined') {
+                                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                                    hljs.highlightElement(block);
+                                });
+                            }
+                            
+                            // Scroll to the bottom
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            
+                            // If this is the last chunk, add to conversation history and reset currentMessageDiv
+                            if (data.done) {
+                                // Add to conversation history
+                                conversationHistory.push({
+                                    role: 'assistant',
+                                    content: contentDiv.getAttribute('data-raw-content')
+                                });
+                                
+                                // Reset currentMessageDiv
+                                currentMessageDiv = null;
+                                
+                                // Hide loading indicator
+                                document.getElementById('chatStatus').classList.add('d-none');
+                            }
+                            break;
+                            
+                        case 'status':
+                            // Status update
+                            if (data.metadata.status === 'completed') {
+                                // Hide loading indicator when completed
+                                document.getElementById('chatStatus').classList.add('d-none');
+                                
+                                // Reset currentMessageDiv if it exists but is empty
+                                if (currentMessageDiv) {
+                                    const contentDiv = document.getElementById('current-response');
+                                    if (!contentDiv.textContent.trim()) {
+                                        chatMessages.removeChild(currentMessageDiv);
+                                        currentMessageDiv = null;
+                                    }
+                                }
+                            }
+                            break;
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling WebSocket message:', error);
+                document.getElementById('chatStatus').classList.add('d-none');
+                
+                // Show a more user-friendly error message
+                addChatMessage('System', `
+                    <div class="alert alert-danger">
+                        <strong><i class="bi bi-exclamation-triangle"></i> Error</strong>
+                        <div>Ocurrió un error al procesar la respuesta. Por favor, intenta nuevamente.</div>
+                        <div class="small text-muted mt-1">Detalles técnicos: ${error.message}</div>
+                    </div>
+                `, true);
+                
+                // If we have a current message div that's incomplete, mark it as error
+                if (currentMessageDiv) {
+                    const contentDiv = document.getElementById('current-response');
+                    if (contentDiv) {
+                        contentDiv.innerHTML += '<div class="text-danger"><em>(La respuesta se interrumpió debido a un error)</em></div>';
+                    }
+                    currentMessageDiv = null;
+                }
+            }
+        }
+        
+        /**
+         * Handle chat form submission
+         */
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            
+            const query = chatInput.value.trim();
+            if (!query) return;
+            
+            // Check if WebSocket is connected
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                addChatMessage('System', 'WebSocket connection not available. Reconnecting...', false);
+                initWebSocket();
+                setTimeout(() => handleChatSubmit(e), 1000);
+                return;
+            }
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Add user message to chat
+            addChatMessage('You', query);
+            
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: query
+            });
+            
+            // Show loading indicator with initial status
+            const chatStatus = document.getElementById('chatStatus');
+            chatStatus.classList.remove('d-none');
+            document.getElementById('chatStatusText').textContent = 'Procesando tu consulta...';
+            
+            // Ensure any existing response is properly finalized
+            const existingResponse = document.getElementById('current-response');
+            if (existingResponse) {
+                // Generate a unique ID for the previous response
+                const uniqueId = 'response-' + Date.now();
+                existingResponse.id = uniqueId;
+            }
+            
+            // Reset current message div
+            currentMessageDiv = null;
+            
+            // Send message via WebSocket
+            try {
+                logWithTime('Sending message via WebSocket:', query);
+                websocket.send(JSON.stringify({
+                    messages: conversationHistory
+                }));
+            } catch (error) {
+                console.error('WebSocket send error:', error);
+                addChatMessage('System', `Error sending message: ${error.message}`, false);
+                chatStatus.classList.add('d-none');
+            }
+        }
+        
+        /**
+         * Add a message to the chat
+         */
+        function addChatMessage(sender, content, isMarkdown = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender.toLowerCase()}`;
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.textContent = sender;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isMarkdown) {
+                contentDiv.classList.add('markdown-container');
+                contentDiv.innerHTML = marked.parse(content);
+                
+                // Apply syntax highlighting to code blocks if hljs is available
+                if (typeof hljs !== 'undefined') {
+                    contentDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }
+            } else {
+                contentDiv.textContent = content;
+            }
+            
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            
+            // Add to conversation history if it's not a system message and not already added
+            // This prevents duplicate entries when manually adding user/assistant messages
+            if (sender.toLowerCase() !== 'system') {
+                // Only add user messages here - assistant messages are added when streaming completes
+                if (sender.toLowerCase() === 'you') {
+                    // Check if this message is already the last user message in the history
+                    const lastUserMessage = [...conversationHistory].reverse()
+                        .find(msg => msg.role === 'user');
+                    
+                    if (!lastUserMessage || lastUserMessage.content !== content) {
+                        logWithTime(`Adding user message to history: ${content.substring(0, 30)}...`);
+                        conversationHistory.push({
+                            role: 'user',
+                            content: content
+                        });
+                    }
+                }
+            }
+            
+            // Scroll to the bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+        
+        /**
+         * Reset UI elements
+         */
+        function resetUI() {
+            // Hide cards
+            chatCard.style.display = 'none';
+            
+            // Clear error message
+            errorMessage.textContent = '';
+            errorMessage.style.display = 'none';
+            
+            // Reset progress bar
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            progressBar.setAttribute('aria-valuenow', 0);
+            
+            // Stop status polling
+            stopStatusPolling();
+            
+            // Close WebSocket connection if open
+            if (websocket && websocket.readyState !== WebSocket.CLOSED) {
+                websocket.close();
+                websocket = null;
+            }
+            
+            // Reset conversation history
+            conversationHistory = [];
+            
+            // Reset current message div
+            currentMessageDiv = null;
+        }
+        
+        /**
+         * Clear chat messages and conversation history
+         */
+        function clearChat() {
+            chatMessages.innerHTML = '';
+            conversationHistory = [];
+        }
+        
+        /**
+         * Handle summarization type change
+         */
+        function handleSummaryTypeChange() {
+            const summaryType = document.querySelector('input[name="summaryType"]:checked').value;
+            const userQueryContainer = document.getElementById('userQueryContainer');
+            
+            if (summaryType === 'detailed') {
+                userQueryContainer.style.display = 'block';
+            } else {
+                userQueryContainer.style.display = 'none';
+            }
+        }
+        
+        /**
+         * Capitalize first letter of a string
+         */
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+    </script>
+</body>
+</html>

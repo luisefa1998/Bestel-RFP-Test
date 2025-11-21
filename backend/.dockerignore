@@ -1,0 +1,27 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Ignore Docker files
+Dockerfile
+.dockerignore
+
+# Ignore environment variable files
+.env
+.env.*
+
+# Ignore virtual environment directories
+.venv
+.venv/*
+
+# Ignore IDE files
+.vscode/
+.idea/
